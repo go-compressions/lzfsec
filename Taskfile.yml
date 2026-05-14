@@ -1,13 +1,17 @@
 version: '3'
 
-env:
-  GOWORK: off  # works in the monorepo (overrides go.work) and in CI (no-op).
+# This Taskfile runs the same way inside the monorepo (where `go.work`
+# at the repo root resolves both lzfsec AND its `github.com/go-
+# compressions/lzfse` dependency locally) and inside the standalone
+# github.com/go-compressions/lzfsec repo (where no `go.work` exists
+# and Go fetches lzfse via the module proxy at the tagged version
+# pinned in go.mod).
 
 tasks:
   build:
     desc: "Build the lzfsec CLI"
     cmds:
-      - go build -mod=mod ./...
+      - go build ./...
 
   test:
     desc: "Run tests with race + own-package coverage for each sub-package"
@@ -18,14 +22,14 @@ tasks:
       # below should print `coverage: 100.0% of statements`.
       - |
         set -eu
-        for pkg in $(go list -mod=mod ./...); do
-          go test -mod=mod -race -count=1 -cover -coverpkg="$pkg" "$pkg"
+        for pkg in $(go list ./...); do
+          go test -race -count=1 -cover -coverpkg="$pkg" "$pkg"
         done
 
   lint:
     desc: "Vet the module"
     cmds:
-      - go vet -mod=mod ./...
+      - go vet ./...
 
   ci:
     desc: "Run lint + build + test (used by the GitHub Actions workflow)"
