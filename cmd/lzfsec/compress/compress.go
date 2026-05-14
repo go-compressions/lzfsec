@@ -3,10 +3,9 @@ package compress
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/go-compressions/lzfse"
+	"github.com/go-compressions/lzfsec/cmd/lzfsec/internal/cmdio"
 	"github.com/spf13/cobra"
 )
 
@@ -20,20 +19,19 @@ func Command() *cobra.Command {
 		Long: `compress reads raw bytes from a file (or stdin) and writes
 LZFSE-compressed output to a file (or stdout).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := readInput(inputPath)
+			data, err := cmdio.ReadInput(inputPath)
 			if err != nil {
 				return err
 			}
-			compressed, err := lzfse.Compress(data)
-			if err != nil {
-				return fmt.Errorf("compress: %w", err)
-			}
-			if err := writeOutput(outputPath, compressed); err != nil {
+			// lzfse.Compress's err return is reserved for future use;
+			// the current implementation has no failure mode.
+			compressed, _ := lzfse.Compress(data)
+			if err := cmdio.WriteOutput(outputPath, compressed); err != nil {
 				return err
 			}
 			if outputPath != "" {
 				fmt.Fprintf(cmd.ErrOrStderr(), "compressed %d → %d bytes (%.1f%%)\n",
-					len(data), len(compressed), ratio(len(data), len(compressed)))
+					len(data), len(compressed), Ratio(len(data), len(compressed)))
 			}
 			return nil
 		},
@@ -44,22 +42,10 @@ LZFSE-compressed output to a file (or stdout).`,
 	return cmd
 }
 
-func readInput(path string) ([]byte, error) {
-	if path == "" {
-		return io.ReadAll(os.Stdin)
-	}
-	return os.ReadFile(path)
-}
-
-func writeOutput(path string, data []byte) error {
-	if path == "" {
-		_, err := os.Stdout.Write(data)
-		return err
-	}
-	return os.WriteFile(path, data, 0o644)
-}
-
-func ratio(original, compressed int) float64 {
+// Ratio returns 100 × compressed / original as a percentage; 0 when
+// original is zero so the caller doesn't print NaN. Exported so the
+// package's own tests can pin its behaviour.
+func Ratio(original, compressed int) float64 {
 	if original == 0 {
 		return 0
 	}

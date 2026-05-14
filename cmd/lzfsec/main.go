@@ -1,3 +1,5 @@
+// lzfsec is a small CLI wrapper around the pure-Go LZFSE
+// implementation in github.com/go-compressions/lzfse.
 package main
 
 import (
@@ -13,18 +15,22 @@ import (
 var osExit = os.Exit
 
 func main() {
-	if err := rootCmd().Execute(); err != nil {
+	if err := RootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		osExit(1)
 	}
 }
 
-func rootCmd() *cobra.Command {
+// RootCmd returns the top-level cobra command. Exported so tests in
+// the same package can exercise the wiring without spawning a child
+// process.
+func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lzfsec",
 		Short: "Compress and decompress files using Apple's LZFSE format",
 		Long: `lzfsec compresses and decompresses files using Apple's LZFSE/LZVN
 compression format with a pure-Go implementation.`,
+		SilenceUsage: true,
 	}
 	cmd.AddCommand(compress.Command())
 	cmd.AddCommand(decompress.Command())
