@@ -15,13 +15,22 @@ github.com/go-compressions/lzfsec
 ## Commands
 
 ```sh
-lzfsec compress   [-i input] [-o output]
-lzfsec decompress [-i input] [-o output]
+lzfsec [-v] compress   [-i input] [-o output]
+lzfsec [-v] decompress [-i input] [-o output]
 ```
 
-`-i` / `--input` defaults to stdin, `-o` / `--output` defaults to stdout.
-When writing to a file (`-o`) a short summary line is printed to stderr
-(byte counts and compression ratio for `compress`).
+- `-i` / `--input` defaults to stdin.
+- `-o` / `--output` defaults to stdout.
+- `-v` / `--verbose` (persistent) prints a summary line to stderr with
+  byte counts, compression ratio (for `compress`), and elapsed time:
+
+  ```text
+  compressed 65536 → 12345 bytes (18.8%) in 4.231ms
+  decompressed 12345 → 65536 bytes in 1.872ms
+  ```
+
+  Without `-v` both sub-commands stay silent so the binary output on
+  stdout is safe to pipe.
 
 ## Examples
 
@@ -31,6 +40,9 @@ lzfsec compress -i big.bin -o big.bin.lzfse
 
 # Round-trip through a pipe.
 cat big.bin | lzfsec compress | lzfsec decompress > restored.bin
+
+# Show timing + ratio.
+lzfsec -v compress -i big.bin -o big.bin.lzfse
 ```
 
 ## Build

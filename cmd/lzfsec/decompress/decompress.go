@@ -3,8 +3,10 @@ package decompress
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-compressions/lzfse"
+	"github.com/go-compressions/lzfsec/cmd/lzfsec/compress"
 	"github.com/go-compressions/lzfsec/cmd/lzfsec/internal/cmdio"
 	"github.com/spf13/cobra"
 )
@@ -23,16 +25,21 @@ writes the original raw data to a file (or stdout).`,
 			if err != nil {
 				return err
 			}
+			started := time.Now()
 			decompressed, err := lzfse.Decompress(data)
+			elapsed := time.Since(started)
 			if err != nil {
 				return fmt.Errorf("decompress: %w", err)
 			}
 			if err := cmdio.WriteOutput(outputPath, decompressed); err != nil {
 				return err
 			}
-			if outputPath != "" {
-				fmt.Fprintf(cmd.ErrOrStderr(), "decompressed %d → %d bytes\n",
-					len(data), len(decompressed))
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			if verbose {
+				fmt.Fprintf(cmd.ErrOrStderr(),
+					"decompressed %d → %d bytes in %s\n",
+					len(data), len(decompressed),
+					compress.FormatDuration(elapsed))
 			}
 			return nil
 		},

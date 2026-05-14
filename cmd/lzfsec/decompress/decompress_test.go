@@ -10,7 +10,7 @@ import (
 	"github.com/go-compressions/lzfse"
 )
 
-func TestCommand_File(t *testing.T) {
+func TestCommand_File_Silent(t *testing.T) {
 	dir := t.TempDir()
 	input := filepath.Join(dir, "in.lzfse")
 	output := filepath.Join(dir, "out.bin")
@@ -32,6 +32,9 @@ func TestCommand_File(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("command: %v", err)
 	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr should be empty without --verbose, got: %q", stderr.String())
+	}
 
 	got, err := os.ReadFile(output)
 	if err != nil {
@@ -40,8 +43,36 @@ func TestCommand_File(t *testing.T) {
 	if !bytes.Equal(got, original) {
 		t.Fatalf("roundtrip mismatch: got %d bytes, want %d", len(got), len(original))
 	}
-	if !strings.Contains(stderr.String(), "decompressed") {
-		t.Fatalf("stderr summary missing: %q", stderr.String())
+}
+
+func TestCommand_File_Verbose(t *testing.T) {
+	dir := t.TempDir()
+	input := filepath.Join(dir, "in.lzfse")
+	output := filepath.Join(dir, "out.bin")
+
+	original := bytes.Repeat([]byte("verbose decompress "), 200)
+	compressed, err := lzfse.Compress(original)
+	if err != nil {
+		t.Fatalf("Compress: %v", err)
+	}
+	if err := os.WriteFile(input, compressed, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := Command()
+	cmd.Flags().BoolP("verbose", "v", false, "verbose")
+	var stderr bytes.Buffer
+	cmd.SetArgs([]string{"--input", input, "--output", output, "--verbose"})
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&stderr)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("command: %v", err)
+	}
+	line := stderr.String()
+	for _, want := range []string{"decompressed", "bytes", " in "} {
+		if !strings.Contains(line, want) {
+			t.Errorf("stderr %q missing %q", line, want)
+		}
 	}
 }
 
@@ -89,8 +120,8 @@ func TestCommand_OutputNotWritable(t *testing.T) {
 }
 
 // TestCommand_StdinStdoutRoundtrip: pipe compressed data to stdin,
-// confirm decompressed bytes land on stdout and no summary line
-// pollutes the binary output.
+// confirm decompressed bytes land on stdout and (without --verbose)
+// no summary line pollutes the output.
 func TestCommand_StdinStdoutRoundtrip(t *testing.T) {
 	payload := []byte("hello from stdin to stdout")
 	compressed, err := lzfse.Compress(payload)
@@ -106,8 +137,8 @@ func TestCommand_StdinStdoutRoundtrip(t *testing.T) {
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("command: %v", err)
 		}
-		if strings.Contains(stderr.String(), "decompressed") {
-			t.Errorf("stderr summary printed for stdout output: %q", stderr.String())
+		if stderr.Len() != 0 {
+			t.Errorf("stderr should be empty: %q", stderr.String())
 		}
 	})
 	if !bytes.Equal(got, payload) {

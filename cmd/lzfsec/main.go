@@ -32,6 +32,11 @@ func RootCmd() *cobra.Command {
 compression format with a pure-Go implementation.`,
 		SilenceUsage: true,
 	}
+	// Persistent --verbose / -v: when set, each sub-command prints
+	// a one-line summary to stderr that includes the byte counts,
+	// compression ratio (compress only), and elapsed time.
+	cmd.PersistentFlags().BoolP("verbose", "v", false,
+		"Print byte counts, ratio, and elapsed time to stderr")
 	cmd.AddCommand(compress.Command())
 	cmd.AddCommand(decompress.Command())
 	return cmd

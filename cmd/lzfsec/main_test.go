@@ -21,6 +21,53 @@ func TestRootCmd_NoArgs(t *testing.T) {
 	}
 }
 
+// TestRootCmd_VerboseAtRoot confirms the persistent --verbose flag
+// declared on RootCmd reaches the subcommands and produces the
+// expected summary line.
+func TestRootCmd_VerboseAtRoot(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "src.bin")
+	compressed := filepath.Join(dir, "src.lzfse")
+	if err := os.WriteFile(src, bytes.Repeat([]byte("verbose root "), 50), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := RootCmd()
+	var stderr bytes.Buffer
+	c.SetArgs([]string{"--verbose", "compress", "--input", src, "--output", compressed})
+	c.SetOut(&bytes.Buffer{})
+	c.SetErr(&stderr)
+	if err := c.Execute(); err != nil {
+		t.Fatalf("compress: %v", err)
+	}
+	out := stderr.String()
+	if !strings.Contains(out, "compressed") || !strings.Contains(out, " in ") {
+		t.Fatalf("stderr summary missing expected fragments: %q", out)
+	}
+
+	d := RootCmd()
+	stderr.Reset()
+	d.SetArgs([]string{"-v", "decompress", "--input", compressed})
+	d.SetOut(&bytes.Buffer{}) // discard binary stdout
+	d.SetErr(&stderr)
+	// Redirect os.Stdout away so the binary output doesn't pollute the
+	// test logs.
+	prev := os.Stdout
+	devnull, _ := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	os.Stdout = devnull
+	defer func() {
+		os.Stdout = prev
+		devnull.Close()
+	}()
+	if err := d.Execute(); err != nil {
+		t.Fatalf("decompress: %v", err)
+	}
+	out = stderr.String()
+	if !strings.Contains(out, "decompressed") || !strings.Contains(out, " in ") {
+		t.Fatalf("decompress stderr summary missing: %q", out)
+	}
+}
+
 // TestRootCmd_Roundtrip drives compress then decompress through
 // the cobra commands directly (no `go run` subprocess), feeding
 // data via a temp file.

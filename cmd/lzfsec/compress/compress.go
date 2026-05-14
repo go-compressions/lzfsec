@@ -3,6 +3,7 @@ package compress
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-compressions/lzfse"
 	"github.com/go-compressions/lzfsec/cmd/lzfsec/internal/cmdio"
@@ -23,15 +24,20 @@ LZFSE-compressed output to a file (or stdout).`,
 			if err != nil {
 				return err
 			}
+			started := time.Now()
 			// lzfse.Compress's err return is reserved for future use;
 			// the current implementation has no failure mode.
 			compressed, _ := lzfse.Compress(data)
+			elapsed := time.Since(started)
 			if err := cmdio.WriteOutput(outputPath, compressed); err != nil {
 				return err
 			}
-			if outputPath != "" {
-				fmt.Fprintf(cmd.ErrOrStderr(), "compressed %d → %d bytes (%.1f%%)\n",
-					len(data), len(compressed), Ratio(len(data), len(compressed)))
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			if verbose {
+				fmt.Fprintf(cmd.ErrOrStderr(),
+					"compressed %d → %d bytes (%.1f%%) in %s\n",
+					len(data), len(compressed), Ratio(len(data), len(compressed)),
+					FormatDuration(elapsed))
 			}
 			return nil
 		},
@@ -50,4 +56,15 @@ func Ratio(original, compressed int) float64 {
 		return 0
 	}
 	return float64(compressed) / float64(original) * 100
+}
+
+// FormatDuration renders d in a unit-stable, human-readable form
+// (rounded to the nearest microsecond so trailing-nanosecond noise
+// doesn't leak into the output). Exported so both sub-commands
+// share the same formatter.
+func FormatDuration(d time.Duration) string {
+	if d < time.Microsecond {
+		return d.String()
+	}
+	return d.Round(time.Microsecond).String()
 }
