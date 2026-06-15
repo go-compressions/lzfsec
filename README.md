@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/go-compressions/brand/main/social/go-compressions-lzfsec.png" alt="go-compressions/lzfsec" width="720"></p>
+
 # lzfsec
 
 [![ci](https://github.com/go-compressions/lzfsec/actions/workflows/ci.yml/badge.svg)](https://github.com/go-compressions/lzfsec/actions/workflows/ci.yml)
