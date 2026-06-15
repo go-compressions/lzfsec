@@ -11,33 +11,90 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: lint + build + test
-    runs-on: ubuntu-latest
+  # Native runners: amd64 + arm64. These also run vet and the fuzz
+  # corpus (native-only, since the fuzzing engine is not cross-built).
+  native:
+    name: native (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, arch: amd64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-          check-latest: true
+          go-version: stable
           cache: true
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Vet
+        run: go vet ./...
 
-      - name: Run Taskfile ci
-        run: task ci
+      - name: Build
+        run: go build ./...
 
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
+      # `go test -coverpkg=./... ./...` only profiles the LAST sub-
+      # package in a single invocation, so we test each sub-package
+      # against its own source. Each line must report 100.0% coverage.
+      - name: Test + per-package coverage gate (100%)
+        run: |
+          set -eu
+          for pkg in $(go list ./...); do
+            out=$(go test -race -count=1 -cover -coverpkg="$pkg" "$pkg")
+            echo "$out"
+            echo "$out" | grep -q 'coverage: 100.0% of statements' \
+              || { echo "::error::$pkg below 100% coverage"; exit 1; }
+          done
+
+  # Emulated runners: cross-compile each package's test binary with
+  # CGO disabled, then execute it under QEMU via docker/binfmt. Mirrors
+  # the proven go-simd/matchlen + go-compressions/lz4 pattern. s390x is
+  # BIG-ENDIAN and validates the lzfse byte/bit-order path end to end.
+  emulated:
+    name: emulated (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: riscv64, image: "debian:trixie", qemu: "rv64,v=true,vlen=128" }
+          - { arch: loong64, image: "ghcr.io/loong64/debian:trixie", qemu: "la464" }
+          - { arch: ppc64le, image: "debian:trixie", qemu: "power9" }
+          - { arch: s390x,   image: "debian:trixie", qemu: "qemu" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          name: coverage
-          path: cover.out
-          if-no-files-found: ignore
+          go-version: stable
+          cache: true
+
+      - name: Register QEMU binfmt handlers
+        run: docker run --privileged --rm tonistiigi/binfmt --install all
+
+      - name: Cross-compile per-package test binaries
+        run: |
+          set -eu
+          mkdir -p /tmp/t
+          for pkg in $(go list ./...); do
+            name=$(echo "$pkg" | tr '/' '_')
+            CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} \
+              go test -c -cover -o "/tmp/t/$name.test" "$pkg"
+            echo "$pkg" >> /tmp/t/pkgs.txt
+          done
+
+      - name: Run test binaries under QEMU + per-package coverage gate (100%)
+        run: |
+          set -eu
+          while read -r pkg; do
+            name=$(echo "$pkg" | tr '/' '_')
+            echo "::group::$pkg"
+            out=$(docker run --rm --platform linux/${{ matrix.arch }} \
+              -e QEMU_CPU=${{ matrix.qemu }} -v /tmp/t:/t \
+              ${{ matrix.image }} "/t/$name.test" -test.v)
+            echo "$out"
+            echo "::endgroup::"
+            echo "$out" | grep -q 'coverage: 100.0% of statements' \
+              || { echo "::error::$pkg below 100% coverage on ${{ matrix.arch }}"; exit 1; }
+          done < /tmp/t/pkgs.txt
