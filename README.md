@@ -52,7 +52,9 @@ lzfsec -v compress -i big.bin -o big.bin.lzfse
 The underlying [`lzfse`](https://github.com/go-compressions/lzfse) library is
 build+test validated across architectures, all of which lzfsec inherits.
 **ppc64le is validated on real POWER10** (GCC Compile Farm, Go 1.26.4, June
-2026) and the library is build+test validated bit-exact on **ppc64
+2026), **riscv64 is validated on a real SpacemiT X60** (RVV 1.0, a low-power
+in-order core — the only widely-available RVV silicon; GCC Compile Farm, Go
+1.26.4, June 2026) and the library is build+test validated bit-exact on **ppc64
 (big-endian)** on real POWER9 silicon. s390x stays qemu-validated for
 correctness only; native s390x throughput is pending (no GitHub-hosted IBM Z
 runner). For the SIMD primitive shared across the family, see
