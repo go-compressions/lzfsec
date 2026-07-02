@@ -22,9 +22,14 @@ tasks:
       # below should print `coverage: 100.0% of statements`.
       - |
         set -eu
+        fail=0
         for pkg in $(go list ./...); do
-          go test -race -count=1 -cover -coverpkg="$pkg" "$pkg"
+          out=$(go test -race -count=1 -cover -coverpkg="$pkg" "$pkg")
+          echo "$out"
+          pct=$(echo "$out" | awk '/coverage:/ {for(i=1;i<=NF;i++) if($i=="coverage:"){g=$(i+1); gsub(/%/,"",g); print g}}')
+          awk "BEGIN{ exit !(${pct:-0} >= 100.0) }" || { echo "coverage ${pct}% < 100.0% for $pkg"; fail=1; }
         done
+        [ "$fail" = 0 ] || { echo "one or more packages below 100% coverage"; exit 1; }
 
   lint:
     desc: "Vet the module"
