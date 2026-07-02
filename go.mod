@@ -1,6 +1,6 @@
 module github.com/go-compressions/lzfsec
 
-go 1.21.0
+go 1.26.4
 
 require (
 	github.com/go-compressions/lzfse v0.1.0
