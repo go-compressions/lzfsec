@@ -5,7 +5,7 @@
 [![ci](https://github.com/go-compressions/lzfsec/actions/workflows/ci.yml/badge.svg)](https://github.com/go-compressions/lzfsec/actions/workflows/ci.yml)
 ![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
 
-CLI wrapper around [`github.com/go-compressions/lzfse`](../lzfse) — Apple's
+CLI wrapper around [`github.com/go-compressions/lzfse`](https://github.com/go-compressions/lzfse) — Apple's
 LZFSE / LZVN compression formats, in pure Go.
 
 ## Module
@@ -95,8 +95,8 @@ patch and minor `gomod` updates auto-merge.
 
 ## Test coverage
 
-`task test` reports **100 % statement coverage** ([`cover.out`](cover.out))
-across the four sub-packages:
+`task test` reports **100 % statement coverage** (written to a
+git-ignored `cover.out`) across the four sub-packages:
 
 | Package                              | Role                                       |
 | ------------------------------------ | ------------------------------------------ |
