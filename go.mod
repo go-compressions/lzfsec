@@ -3,7 +3,7 @@ module github.com/go-compressions/lzfsec
 go 1.27.1
 
 require (
-	github.com/go-compressions/lzfse v0.4.1
+	github.com/go-compressions/lzfse v0.5.0
 	github.com/spf13/cobra v1.10.2
 )
 
