@@ -1,6 +1,6 @@
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
-github.com/go-compressions/lzfse v0.5.0 h1:r4eLxuzXc2C0LYlhhVmtEq0c+B31c53jcaa8UKLbMlk=
-github.com/go-compressions/lzfse v0.5.0/go.mod h1:G4+MZUwHkfTSjCfJyRFJzTdNIy0v+JcehyxvWJTGBE4=
+github.com/go-compressions/lzfse v0.6.0 h1:LXo+b8rphmNHldheGCYUTJ/HPcBCwN+dFY96PzOPouc=
+github.com/go-compressions/lzfse v0.6.0/go.mod h1:M5g2n/8PWC9JCyAPpo18Vcue7q3/yVI5b6txizVaHKo=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
